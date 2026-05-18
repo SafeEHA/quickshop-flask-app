@@ -7,7 +7,7 @@ WORKDIR /app
 # Copy dependencies first — Docker caches this layer if requirements.txt is unchanged
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 # Copy the application code
 COPY app.py .
 
