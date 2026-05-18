@@ -93,7 +93,7 @@ resource "aws_ecs_task_definition" "app" {
       interval    = 30
       timeout     = 5
       retries     = 3
-      startPeriod = 15
+      startPeriod = 60
     }
 
     logConfiguration = {
@@ -114,6 +114,7 @@ resource "aws_ecs_service" "app" {
   task_definition = aws_ecs_task_definition.app.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+  health_check_grace_period_seconds = 60
 
   network_configuration {
     subnets          = tolist(data.aws_subnets.default.ids)

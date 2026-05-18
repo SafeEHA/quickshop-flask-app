@@ -53,7 +53,7 @@ HTML = """<!DOCTYPE html>
         <h1>QuickShop API</h1>
         <div class="sub">ECS Fargate &middot; eu-west-2</div>
       </div>
-      <div class="pill" id="pill">
+      <div class="pill">
         <span class="dot"></span>
         <span id="status-text">running</span>
       </div>
@@ -62,7 +62,7 @@ HTML = """<!DOCTYPE html>
     <div class="grid">
       <div class="metric">
         <div class="metric-label">Service</div>
-        <div class="metric-value" id="m-service" style="font-size:14px; padding-top:3px;">QuickShop API</div>
+        <div class="metric-value" id="m-service" style="font-size:14px;padding-top:3px;">QuickShop API</div>
       </div>
       <div class="metric">
         <div class="metric-label">Status</div>
@@ -74,18 +74,18 @@ HTML = """<!DOCTYPE html>
       </div>
       <div class="metric">
         <div class="metric-label">Last checked</div>
-        <div class="metric-value" id="m-time" style="font-size:13px; padding-top:3px;">—</div>
+        <div class="metric-value" id="m-time" style="font-size:13px;padding-top:3px;">—</div>
       </div>
     </div>
 
     <div class="raw">
-      <div class="raw-label">Raw response</div>
-      <pre id="raw-out">{"service": "QuickShop API", "status": "running", "version": "1.0.0"}</pre>
+      <div class="raw-label">Raw API response</div>
+      <pre id="raw-out">Click Refresh to fetch live data</pre>
     </div>
 
     <div class="footer">
       <button id="btn" onclick="refresh()">&#x21BB; Refresh</button>
-      <span class="ts" id="ts">Loaded on page open</span>
+      <span class="ts" id="ts">—</span>
     </div>
   </div>
 
@@ -93,48 +93,56 @@ HTML = """<!DOCTYPE html>
     function fmt(d) {
       return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     }
-    document.getElementById('m-time').textContent = fmt(new Date());
 
     async function refresh() {
       const btn = document.getElementById('btn');
       btn.innerHTML = '<span class="spin">&#x21BB;</span> Checking…';
       btn.disabled = true;
       try {
-        const res = await fetch('/');
+        // calls /api — pure JSON, separate from the UI route
+        const res = await fetch('/api');
         const data = await res.json();
         const now = new Date();
         document.getElementById('m-service').textContent = data.service || '—';
-        document.getElementById('m-status').textContent = data.status || '—';
+        document.getElementById('m-status').textContent  = data.status  || '—';
         document.getElementById('m-version').textContent = data.version || '—';
-        document.getElementById('m-time').textContent = fmt(now);
+        document.getElementById('m-time').textContent    = fmt(now);
         document.getElementById('status-text').textContent = data.status || '—';
-        document.getElementById('raw-out').textContent = JSON.stringify(data, null, 2);
-        document.getElementById('ts').textContent = 'Updated at ' + fmt(now);
+        document.getElementById('raw-out').textContent   = JSON.stringify(data, null, 2);
+        document.getElementById('ts').textContent        = 'Updated at ' + fmt(now);
       } catch(e) {
-        document.getElementById('ts').textContent = 'Error: ' + e.message;
+        document.getElementById('raw-out').textContent = 'Error: ' + e.message;
+        document.getElementById('ts').textContent = 'Failed at ' + fmt(new Date());
       }
       btn.innerHTML = '&#x21BB; Refresh';
       btn.disabled = false;
     }
+
+    // Auto-refresh on load
+    refresh();
   </script>
 </body>
 </html>"""
 
+
 @app.route('/')
 def home():
-    return jsonify({
+    return render_template_string(HTML)      # UI lives at /
+
+
+@app.route('/api')
+def api():
+    return jsonify({                          # raw JSON for the Refresh button
         'service': 'QuickShop API',
-        'status': 'running',
+        'status':  'running',
         'version': '1.0.0'
     })
 
-@app.route('/ui')
-def ui():
-    return render_template_string(HTML)
 
 @app.route('/health')
 def health():
     return jsonify({'status': 'healthy'}), 200
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
